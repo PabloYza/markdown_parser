@@ -47,3 +47,24 @@ class TagTypeToHtml {
     return `${openingTagPattern}p>`;
   }
 }
+
+interface IMarkdownDocument {
+  Add(...content : string[]) : void
+  Get() : string
+}
+
+class MakdownDocument implements IMarkdownDocument {
+  private content : string = " "
+  Add(...content: string[]) : void {
+    content.forEach(element => {
+      this.content += element
+    })
+  }
+  Get() : string {
+    return this.content
+  }
+}
+
+class ParseElement {
+  CurrentLine : string = ""
+}
