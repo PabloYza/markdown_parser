@@ -48,23 +48,81 @@ class TagTypeToHtml {
   }
 }
 
+// Markdown doc
+
 interface IMarkdownDocument {
-  Add(...content : string[]) : void
-  Get() : string
+  Add(...content: string[]): void;
+  Get(): string;
 }
 
-class MakdownDocument implements IMarkdownDocument {
-  private content : string = " "
-  Add(...content: string[]) : void {
-    content.forEach(element => {
-      this.content += element
-    })
+class MarkdownDocument implements IMarkdownDocument {
+  private content: string = " ";
+  Add(...content: string[]): void {
+    content.forEach((element) => {
+      this.content += element;
+    });
   }
-  Get() : string {
-    return this.content
+  Get(): string {
+    return this.content;
   }
 }
 
 class ParseElement {
-  CurrentLine : string = ""
+  CurrentLine: string = "";
+}
+
+/*  Visitor pattern */
+
+interface IVistor {
+  Visit(token: ParseElement, markdownDocument: IMarkdownDocument): void;
+}
+
+interface IVisitable {
+  Accept(
+    visitor: IVistor,
+    token: ParseElement,
+    markdownDocument: IMarkdownDocument
+  ): void;
+}
+
+// when visit is called cal <TagTypeToHtml()> to format text 
+abstract class VisitorBase implements IVistor {
+  constructor(private readonly tagType: TagType, private readonly TagTypeToHtml : TagTypeToHtml) {}
+  Visit(token: ParseElement, markdownDocument: IMarkdownDocument): void {
+    markdownDocument.Add(this.TagTypeToHtml.OpeningTag(this.tagType), token.CurrentLine, this.TagTypeToHtml.ClosingTag(this.tagType))
+  }
+}
+
+// visitor implementations
+class Header1Visitor extends VisitorBase {
+  constructor() {
+    super(TagType.Header1, new TagTypeToHtml())
+  }
+}
+
+class Header2Visitor extends VisitorBase {
+  constructor() {
+    super(TagType.Header2, new TagTypeToHtml())
+  }
+}
+class Header3Visitor extends VisitorBase {
+  constructor() {
+    super(TagType.Header3, new TagTypeToHtml())
+  }
+}
+class ParagraphVisitor extends VisitorBase {
+  constructor() {
+    super(TagType.Paragraph, new TagTypeToHtml())
+  }
+}
+class HorizontalRuleVisitor extends VisitorBase {
+  constructor() {
+    super(TagType.HorizontalRule, new TagTypeToHtml())
+  }
+}
+
+class Visitable implements IVisitable {
+  Accept(visitor: IVistor, token: ParseElement, markdownDocument: IMarkdownDocument): void {
+    visitor.Visit(token, markdownDocument)
+  }
 }
