@@ -1,15 +1,28 @@
 class HtmlHandler {
+  private markdownChange: Markdown = new Markdown();
   public TextChangeHandler(id: string, output: string): void {
-    let markdown = <HTMLTextAreaElement>document.getElementById(id);
-    let markdownOutput = <HTMLLabelElement>document.getElementById(output);
+    let markdown = document.getElementById(id) as HTMLTextAreaElement;
+    let markdownOutput = document.getElementById(output) as HTMLLabelElement;
     if (markdown !== null) {
       markdown.onkeyup = (e) => {
-        if (markdown.value) {
-          markdownOutput.innerHTML = markdown.value;
-        } else markdownOutput.innerHTML = "<p></p>";
+        this.RenderHtmlContent(markdown, markdownOutput);
       };
+      window.onload = (e) => {
+        this.RenderHtmlContent(markdown, markdownOutput);
+      };
+      markdownOutput.innerHTML = "<p>Waiting for text . . .</p>";
     }
-    markdownOutput.innerHTML = "<p>Waiting for text . . .</p>";
+  }
+
+  private RenderHtmlContent(
+    markdown: HTMLTextAreaElement,
+    markdownOutput: HTMLLabelElement
+  ) {
+    if (markdown.value) {
+      markdownOutput.innerHTML = this.markdownChange.ToHtml(markdown.value);
+    } else {
+      markdownOutput.innerHTML = "<p></p>";
+    }
   }
 }
 
@@ -203,42 +216,64 @@ class ParagraphHandler extends Handler<ParseElement> {
   }
 }
 
+// concrete handlers for the appropriate tags
+
 class Header1ChainHandler extends ParseChainHandler {
-  constructor(document : IMarkdownDocument) {
-    super(document, "# ", new Header1Visitor())
+  constructor(document: IMarkdownDocument) {
+    super(document, "# ", new Header1Visitor());
   }
 }
 
 class Header2ChainHandler extends ParseChainHandler {
-  constructor(document : IMarkdownDocument) {
-    super(document, "## ", new Header2Visitor())
+  constructor(document: IMarkdownDocument) {
+    super(document, "## ", new Header2Visitor());
   }
 }
 class Header3ChainHandler extends ParseChainHandler {
-  constructor(document : IMarkdownDocument) {
-    super(document, "### ", new Header3Visitor())
+  constructor(document: IMarkdownDocument) {
+    super(document, "### ", new Header3Visitor());
   }
 }
 
 class HorizontalRuleHandler extends ParseChainHandler {
-  constructor(document : IMarkdownDocument) {
-    super(document, '---', new HorizontalRuleVisitor())
+  constructor(document: IMarkdownDocument) {
+    super(document, "---", new HorizontalRuleVisitor());
   }
 }
 
 class ChainOfResponsabilityFactory {
-  Build(document : IMarkdownDocument) : ParseChainHandler {
-    let header1 : Header1ChainHandler = new Header1ChainHandler(document)
-    let header2 : Header2ChainHandler = new Header2ChainHandler(document)
-    let header3 : Header3ChainHandler = new Header3ChainHandler(document)
-    let horizontalRule : HorizontalRuleHandler = new HorizontalRuleHandler(document)
-    let paragraph : ParagraphHandler = new ParagraphHandler(document)
+  Build(document: IMarkdownDocument): ParseChainHandler {
+    let header1: Header1ChainHandler = new Header1ChainHandler(document);
+    let header2: Header2ChainHandler = new Header2ChainHandler(document);
+    let header3: Header3ChainHandler = new Header3ChainHandler(document);
+    let horizontalRule: HorizontalRuleHandler = new HorizontalRuleHandler(
+      document
+    );
+    let paragraph: ParagraphHandler = new ParagraphHandler(document);
 
-    header1.SetNext(header2)
-    header2.SetNext(header3)
-    header3.SetNext(horizontalRule)
-    horizontalRule.SetNext(paragraph)
+    header1.SetNext(header2);
+    header2.SetNext(header3);
+    header3.SetNext(horizontalRule);
+    horizontalRule.SetNext(paragraph);
 
-    return header1
+    return header1;
+  }
+}
+
+/* Take the text being written and split it into individual lines */
+
+class Markdown {
+  public ToHtml(text: string): string {
+    let document: IMarkdownDocument = new MarkdownDocument();
+    let header1: Header1ChainHandler = new ChainOfResponsabilityFactory().Build(
+      document
+    );
+    let lines: string[] = text.split(`\n`);
+    for (let index = 0; index < lines.length; index++) {
+      let parseElement: ParseElement = new ParseElement();
+      parseElement.CurrentLine = lines[index];
+      header1.HandleRequest(parseElement);
+    }
+    return document.Get();
   }
 }
